@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <title>Чек‑лист ровера</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding: 16px;
+        background: #121212;
+        color: #e0e0e0;
+        margin: 0;
+      }
+      h2 { margin-top: 0; color: #ffffff; }
+      .page { display: none; }
+      .page.active { display: block; }
+
+      .task-btn {
+        width: 100%;
+        text-align: left;
+        padding: 14px 16px;
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        font-size: 15px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .task-btn.done {
+        background: #2b4a2b;
+        color: #4caf50;
+        border-color: #4caf50;
+      }
+      .task-btn:not(.done):active {
+        background: #333;
+      }
+
+      .nav-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      /* Кнопка «В начало» и аналогичные кнопки на главной — тёмные */
+      .btn-main, .btn-reset {
+        flex: 1;
+        padding: 18px;
+        background: #2b363b;
+        color: #aaa;
+        border: none;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .btn-main:hover, .btn-reset:hover {
+        color: white;
+        background: #3a4b52;
+      }
+
+      /* Кнопка «Далее» / «Готово» — зелёная */
+      .btn-next {
+        flex: 1;
+        padding: 18px;
+        background: #2e7d32;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 500;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      .btn-next.enabled {
+        cursor: pointer;
+        opacity: 1;
+      }
+      .btn-next:hover.enabled {
+        background: #388e3c;
+      }
+
+      pre {
+        background: #262626;
+        padding: 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin-top: 16px;
+        border: 1px solid #444;
+        color: #cccccc;
+      }
+
+      .rover-selector-row {
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+        background: #2b363b;
+        border: 1px solid #5a6d75;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+      label {
+        font-weight: 500;
+        color: #aaaaaa;
+      }
+      select, input {
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #444;
+        background: #111;
+        color: #e0e0e0;
+        font-size: 15px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      input[type="number"] { text-align: right; }
+
+      .report-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .report-label {
+        color: #aaa;
+        font-size: 13px;
+      }
+      .time-pair, .km-pair {
+        display: flex;
+        gap: 8px;
+      }
+      .time-pair input, .km-pair input { flex: 1; }
+
+      #p7-header-info {
+        background: #25252b;
+        padding: 14px;
+        border-radius: 10px;
+        border: 1px solid #4a4a55;
+        margin-bottom: 16px;
+      }
+      #p7-header-info div {
+        font-size: 14px;
+        color: #aaa;
+        margin-bottom: 8px;
+      }
+      #p7-header-info span {
+        color: #fff;
+        font-weight: 500;
+      }
+      #p7-odometer-km {
+        color: #4caf50;
+      }
+
+      .divider-line {
+        height: 1px;
+        background: #444;
+        margin: 16px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Стартовая страница -->
+    <div id="start-page" class="page active">
+      <h2>Чек‑лист ровера</h2>
+      <div class="nav-row" style="flex-direction:column; gap:12px;">
+        <button class="btn-main" onclick="startScenario('prep')">Начало смены</button>
+        <button class="btn-main" onclick="startScenario('departure')">Выезд</button>
+        <button class="btn-main" onclick="startScenario('end')">Конец смены</button>
+      </div>
+    </div>
+
+    <!-- Начало смены: страницы в порядке 1,5,6,3,2,4 -->
+    <div id="page-1" class="page">
+      <h2>Подготовка к смене</h2>
+      <div id="tasks-1"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="next-1" onclick="goToPage('page-5')" disabled>Далее</button>
+      </div>
+    </div>
+
+    <div id="page-5" class="page">
+      <h2>Багажник</h2>
+      <div id="tasks-5"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="next-5" onclick="goToPage('page-6')" disabled>Далее</button>
+      </div>
+    </div>
+
+    <div id="page-6" class="page">
+      <h2>Сенсоры, стекла и зеркала</h2>
+      <div id="tasks-6"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="next-6" onclick="goToPage('page-3')" disabled>Далее</button>
+      </div>
+    </div>
+
+    <div id="page-3" class="page">
+      <h2>Жидкости и ремни</h2>
+      <div id="tasks-3"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="next-3" onclick="goToPage('page-2')" disabled>Далее</button>
+      </div>
+    </div>
+
+    <div id="page-2" class="page">
+      <h2>Внешний осмотр ровера</h2>
+      <div id="tasks-2"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="next-2" onclick="goToPage('page-4')" disabled>Далее</button>
+      </div>
+    </div>
+
+    <div id="page-4" class="page">
+      <h2>Светотехника, салон</h2>
+
+      <!-- Выбор ровера -->
+      <div class="rover-selector-row">
+        <label>Имя ровера (выберите из списка)</label>
+        <select id="rover-name-select">
+          <option value="#Anabel">Anabel</option>
+          <option value="#Arlim">Arlim</option>
+          <option value="#Aucel">Aucel</option>
+          <option value="#Baland">Baland</option>
+          <option value="#Bett">Bett</option>
+          <option value="#Darron">Darron</option>
+          <option value="#Franshesca">Franshesca</option>
+          <option value="#Gevone">Gevone</option>
+          <option value="#Greton">Greton</option>
+          <option value="#Hankie">Hankie</option>
+          <option value="#Hetera">Hetera</option>
+          <option value="#Hilma">Hilma</option>
+          <option value="#Jurgie">Jurgie</option>
+          <option value="#Jurita">Jurita</option>
+          <option value="#Kurt">Kurt</option>
+          <option value="#Kynde">Kynde</option>
+          <option value="#Lamira">Lamira</option>
+          <option value="#Leid">Leid</option>
+          <option value="#Lerut">Lerut</option>
+          <option value="#Lisna">Lisna</option>
+          <option value="#Luka">Luka</option>
+          <option value="#Manolio">Manolio</option>
+          <option value="#Mika">Mika</option>
+          <option value="#Miro">Miro</option>
+          <option value="#Natelio">Natelio</option>
+          <option value="#Nikena">Nikena</option>
+          <option value="#Oris">Oris</option>
+          <option value="#Orvy">Orvy</option>
+          <option value="#Ravine">Ravine</option>
+          <option value="#Repara">Repara</option>
+          <option value="#Rickie">Rickie</option>
+          <option value="#Rifa">Rifa</option>
+          <option value="#Right">Right</option>
+          <option value="#Shelly">Shelly</option>
+          <option value="#Soan">Soan</option>
+          <option value="#Susana">Susana</option>
+          <option value="#Targi">Targi</option>
+          <option value="#Vittor">Vittor</option>
+          <option value="#Ward">Ward</option>
+          <option value="#Washam">Washam</option>
+          <option value="#Weel">Weel</option>
+          <option value="#ИНОЙ">ИНОЙ</option>
+        </select>
+      </div>
+
+      <!-- Пробег -->
+      <div style="margin-top:16px;">
+        <label class="report-label" style="display:block; margin-bottom:6px;">Пробег ровера (км)</label>
+        <input type="number" id="page4-odometer" placeholder="км">
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div id="tasks-4"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="next-4" onclick="finishScenario('prep')" disabled>Готово</button>
+      </div>
+    </div>
+
+    <!-- Выезд: страница 7 -->
+    <div id="page-7" class="page">
+      <h2>Подготовка к выезду</h2>
+      <div id="p7-header-info">
+        <div>Дата: <span id="p7-date"></span></div>
+        <div>Ровер: <span id="p7-rover-name"></span></div>
+        <div>Пробег: <span id="p7-odometer-km">0</span> км</div>
+      </div>
+      <div id="tasks-7"></div>
+      <div class="nav-row">
+        <button class="btn-reset" style="margin-bottom:0;" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" id="btn-finish-departure" onclick="finishDepartureScenario()" disabled>Готово</button>
+      </div>
+    </div>
+
+    <!-- Конец смены: страница 12 -->
+    <div id="page-12" class="page">
+      <h2>Завершение смены</h2>
+      <div id="tasks-12"></div>
+      <div class="nav-row">
+        <button class="btn-reset" onclick="showPage('start-page')">В начало</button>
+        <button class="btn-next" onclick="finishScenario('end')" disabled>Готово</button>
+      </div>
+    </div>
+
+    <!-- Отчёт -->
+    <div id="report" class="page">
+      <h2>Отчёт за смену</h2>
+      <div style="max-width: 560px;">
+        <!-- Ровер: выпадающий список -->
+        <div class="report-row">
+          <label class="report-label">Ровер</label>
+          <select id="report-rover">
+            <option value="#Anabel">Anabel</option>
+            <option value="#Arlim">Arlim</option>
+            <option value="#Aucel">Aucel</option>
+            <option value="#Baland">Baland</option>
+            <option value="#Bett">Bett</option>
+            <option value="#Darron">Darron</option>
+            <option value="#Franshesca">Franshesca</option>
+            <option value="#Gevone">Gevone</option>
+            <option value="#Greton">Greton</option>
+            <option value="#Hankie">Hankie</option>
+            <option value="#Hetera">Hetera</option>
+            <option value="#Hilma">Hilma</option>
+            <option value="#Jurgie">Jurgie</option>
+            <option value="#Jurita">Jurita</option>
+            <option value="#Kurt">Kurt</option>
+            <option value="#Kynde">Kynde</option>
+            <option value="#Lamira">Lamira</option>
+            <option value="#Leid">Leid</option>
+            <option value="#Lerut">Lerut</option>
+            <option value="#Lisna">Lisna</option>
+            <option value="#Luka">Luka</option>
+            <option value="#Manolio">Manolio</option>
+            <option value="#Mika">Mika</option>
+            <option value="#Miro">Miro</option>
+            <option value="#Natelio">Natelio</option>
+            <option value="#Nikena">Nikena</option>
+            <option value="#Oris">Oris</option>
+            <option value="#Orvy">Orvy</option>
+            <option value="#Ravine">Ravine</option>
+            <option value="#Repara">Repara</option>
+            <option value="#Rickie">Rickie</option>
+            <option value="#Rifa">Rifa</option>
+            <option value="#Right">Right</option>
+            <option value="#Shelly">Shelly</option>
+            <option value="#Soan">Soan</option>
+            <option value="#Susana">Susana</option>
+            <option value="#Targi">Targi</option>
+            <option value="#Vittor">Vittor</option>
+            <option value="#Ward">Ward</option>
+            <option value="#Washam">Washam</option>
+            <option value="#Weel">Weel</option>
+            <option value="#ИНОЙ">ИНОЙ</option>
+          </select>
+        </div>
+
+        <!-- Маршрут: пустая строка для ручного ввода -->
+        <div class="report-row">
+          <label class="report-label">Маршрут</label>
+          <input type="text" id="report-route" placeholder="Вставьте маршрут из другого приложения">
+        </div>
+
+        <div class="report-row">
+          <label class="report-label">Место</label>
+          <input type="text" id="report-place" placeholder="**" inputmode="numeric">
+        </div>
+        <div class="report-row">
+          <label class="report-label">Заправка</label>
+          <select id="report-fuel">
+            <option value="Да">Да</option>
+            <option value="Нет" selected>Нет</option>
+          </select>
+        </div>
+        <div class="report-row">
+          <label class="report-label">Мойка</label>
+          <select id="report-wash">
+            <option value="Да">Да</option>
+            <option value="Нет" selected>Нет</option>
+          </select>
+        </div>
+        <div class="report-row">
+          <div>
+            <label class="report-label">Время АП / РП</label>
+            <div class="time-pair">
+              <input type="tel" id="report-time-ap" placeholder="чч:мм" inputmode="numeric" maxlength="5">
+              <span style="color:#aaa">/</span>
+              <input type="tel" id="report-time-rp" placeholder="чч:мм" inputmode="numeric" maxlength="5">
+            </div>
+          </div>
+        </div>
+        <div class="report-row">
+          <div>
+            <label class="report-label">Пробег АП / РП (км)</label>
+            <div class="km-pair">
+              <input type="number" id="report-km-ap" placeholder="км" inputmode="numeric">
+              <span style="color:#aaa">/</span>
+              <input type="number" id="report-km-rp" placeholder="км" inputmode="numeric">
+            </div>
+          </div>
+        </div>
+      </div>
+      <pre id="report-text"></pre>
+      <button class="btn-next report-btn" onclick="generateAndCopyReport()">Сформировать отчёт</button>
+      <button class="btn-reset" style="margin-top:12px;" onclick="showPage('start-page')">В начало</button>
+      <p style="margin-top:12px; font-size:13px; color:#888;">
+        После копирования вставьте текст в нужный мессенджер.
+      </p>
+    </div>
+
+    <script>
+      // Чек‑листы по страницам
+      const checklists = {
+        'page-1': [
+          { id: 'p1-1', title: 'Медицина' },
+          { id: 'p1-3', title: 'Роспись у старшего смены за ТБ' },
+          { id: 'p1-2', title: 'Взять ключи от ровера' }
+        ],
+        'page-5': [
+          { id: 'p5-1', title: 'Долить омывайку в лидары' },
+          { id: 'p5-2', title: 'Наличие запаса омывайки' },
+          { id: 'p5-3', title: 'Набор автолюбителя' },
+          { id: 'p5-4', title: 'Зеленый жилет' },
+          { id: 'p5-5', title: 'Крюк буксировочный' }
+        ],
+        'page-6': [
+          { id: 'p6-1', title: 'Чистота сенсоров, стекол и зеркал' }
+        ],
+        'page-3': [
+          { id: 'p3-1', title: 'Пятна под авто' },
+          { id: 'p3-2', title: 'Ремень генератора на ЗАГЛУШЕННУЮ' },
+          { id: 'p3-3', title: 'Уровень моторного масла' },
+          { id: 'p3-4', title: 'Уровень тормозной жидкости' },
+          { id: 'p3-5', title: 'Уровень охлаждающей жидкости' },
+          { id: 'p3-6', title: 'Долить омывающую жидкость' },
+          { id: 'p3-7', title: 'Ремень генератора на ЗАВЕДЕННУЮ' }
+        ],
+        'page-2': [
+          { id: 'p2-1', title: 'Личинка замка (работоспособность)' },
+          { id: 'p2-2', title: 'Наклейка А' },
+          { id: 'p2-3', title: 'Госномера' },
+          { id: 'p2-4', title: 'Внешние повреждения (фиксация)' },
+          { id: 'p2-5', title: 'Давление в колесах' }
+        ],
+        'page-4': [
+          { id: 'p4-1', title: 'Стоп-сигналы' },
+          { id: 'p4-2', title: 'Клаксон' },
+          { id: 'p4-3', title: 'Дворники' },
+          { id: 'p4-4', title: 'Световые приборы' },
+          { id: 'p4-5', title: 'Подсветка номера' },
+          { id: 'p4-7', title: 'Документы в бардачке (страховка, СТС, европротокол, чистый лист)' }
+        ],
+        'page-7': [
+          { id: 'p7-1', title: 'Путевой лист у деж меха' },
+          { id: 'p7-2', title: 'Проверка ЗАГРУЗКИ и АКТИВАЦИИ ветки. Если ок — снять со шнурков' },
+          { id: 'p7-3', title: 'Подключить телефон по Bluetooth' },
+          { id: 'p7-4', title: 'Включить фары' },
+          { id: 'p7-5', title: 'Сохрани радио 104,7 и 93,2' }
+        ],
+        'page-12': [
+          { id: 'p12-1', title: 'Поставить ровер на шнурки + ФОТО' },
+          { id: 'p12-2', title: 'Сделать ФОТО пробега и времени наката' },
+          { id: 'p12-3', title: 'Проверить выгрузку логов (статус Кабель и Uploading файлов) + ФОТО' },
+          { id: 'p12-4', title: 'Проверить наличие внешнего питания (лампа + Control HMI)' },
+          { id: 'p12-5', title: 'Заглушить авто' },
+          { id: 'p12-6', title: 'Заполнить путевой лист' },
+          { id: 'p12-7', title: 'Написать отчет по смене (место, пробег, время)' },
+          { id: 'p12-8', title: 'Забрать свои вещи (провод зарядки, вода, сумка)' },
+          { id: 'p12-9', title: 'Взять ключи и повесить их на стенд' }
+        ]
+      };
+
+      function formatDateRU(date) {
+        const day = date.getDate();
+        const year = date.getFullYear();
+        const months = [
+          'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+          'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+        ];
+        const month = months[date.getMonth()];
+        return `${day} ${month} ${year} г.`;
+      }
+
+      // Состояние хранится в памяти: сбрасывается только при обновлении страницы.
+      let appState = {
+        doneTasks: {},
+        rover: '',
+        odometer: '',
+        scenario: ''
+      };
+
+      function initTasks() {
+        for (const pageId in checklists) {
+          const container = document.getElementById(`tasks-${pageId.replace('page-', '')}`);
+          if (!container) continue;
+          container.innerHTML = '';
+          checklists[pageId].forEach(task => {
+            const btn = document.createElement('button');
+            btn.className = 'task-btn';
+            btn.id = task.id;
+            btn.textContent = task.title;
+            if (appState.doneTasks[task.id]) {
+              btn.classList.add('done');
+            }
+            btn.onclick = () => toggleTask(task.id, btn);
+            container.appendChild(btn);
+          });
+        }
+        updatePageControls();
+      }
+
+      function toggleTask(id, btn) {
+        if (appState.doneTasks[id]) {
+          delete appState.doneTasks[id];
+          btn.classList.remove('done');
+        } else {
+          appState.doneTasks[id] = true;
+          btn.classList.add('done');
+        }
+        updatePageControls();
+      }
+
+      function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const page = document.getElementById(pageId);
+        if (page) {
+          page.classList.add('active');
+          initTasks();
+        }
+      }
+
+      function goToPage(pageId) {
+        showPage(pageId);
+      }
+
+      function startScenario(scenario) {
+        appState.scenario = scenario;
+
+        if (scenario === 'departure') {
+          showPage('page-7');
+          const now = new Date();
+          document.getElementById('p7-date').textContent = formatDateRU(now);
+
+          const roverSelect = document.querySelector('#rover-name-select');
+          const roverName = roverSelect ? roverSelect.value : '#ИНОЙ';
+          appState.rover = roverName;
+          document.getElementById('p7-rover-name').textContent = roverName.replace('#', '');
+
+          const odometerInput = document.getElementById('page4-odometer');
+          let odometerValue = '';
+          if (odometerInput && odometerInput.value) {
+            odometerValue = odometerInput.value;
+          } else if (appState.odometer) {
+            odometerValue = appState.odometer;
+          }
+          appState.odometer = odometerValue;
+          document.getElementById('p7-odometer-km').textContent = odometerValue || '0';
+        } else if (scenario === 'prep') {
+          showPage('page-1');
+        } else if (scenario === 'end') {
+          showPage('page-12');
+        }
+      }
+
+      function finishScenario(scenario) {
+        if (scenario === 'end') {
+          // Формируем отчёт в требуемом формате
+          const roverSelect = document.getElementById('report-rover');
+          const rover = roverSelect ? roverSelect.value : '#Не указан';
+          const place = document.getElementById('report-place').value || '';
+          const route = document.getElementById('report-route').value || '';
+          const fuel = document.getElementById('report-fuel').value;
+          const wash = document.getElementById('report-wash').value;
+          const timeAP = document.getElementById('report-time-ap').value || '—';
+          const timeRP = document.getElementById('report-time-rp').value || '—';
+          const kmAP = document.getElementById('report-km-ap').value || '—';
+          const kmRP = document.getElementById('report-km-rp').value || '—';
+
+          // Добавляем ", ключи на стенде" к полю "Место"
+          const placeWithNote = place ? `${place}, ключи на стенде` : '—, ключи на стенде';
+
+          const reportText = `Ровер: ${rover}
+Маршрут: ${route}
+Время АП / РП: ${timeAP} / ${timeRP}
+Пробег АП / РП: ${kmAP} / ${kmRP}
+Место: ${placeWithNote}
+Заправка: ${fuel}
+Мойка: ${wash}
+Простой:`;
+
+          document.getElementById('report-text').textContent = reportText;
+          showPage('report');
+        } else if (scenario === 'prep') {
+          alert('Начало смены завершено. Можно переходить к выезду.');
+          showPage('start-page');
+        }
+      }
+
+      function finishDepartureScenario() {
+        const allDone = checklists['page-7'].every(task => appState.doneTasks[task.id]);
+        if (!allDone) {
+          alert('Не все пункты чек‑листа выполнены — завершите подготовку.');
+          return;
+        }
+        const odometerInput = document.getElementById('page4-odometer');
+        if (odometerInput && odometerInput.value) {
+          appState.odometer = odometerInput.value;
+        }
+        showPage('start-page');
+      }
+
+      function generateAndCopyReport() {
+        // Сначала собираем данные
+        const roverSelect = document.getElementById('report-rover');
+        const rover = roverSelect ? roverSelect.value : '#Не указан';
+        const place = document.getElementById('report-place').value || '';
+        const route = document.getElementById('report-route').value || '';
+        const fuel = document.getElementById('report-fuel').value;
+        const wash = document.getElementById('report-wash').value;
+        const timeAP = document.getElementById('report-time-ap').value || '—';
+        const timeRP = document.getElementById('report-time-rp').value || '—';
+        const kmAP = document.getElementById('report-km-ap').value || '—';
+        const kmRP = document.getElementById('report-km-rp').value || '—';
+
+        // Добавляем ", ключи на стенде" к полю "Место"
+        const placeWithNote = place ? `${place}, ключи на стенде` : '—, ключи на стенде';
+
+        const reportText = `Ровер: ${rover}
+Маршрут: ${route}
+Время АП / РП: ${timeAP} / ${timeRP}
+Пробег АП / РП: ${kmAP} / ${kmRP}
+Место: ${placeWithNote}
+Заправка: ${fuel}
+Мойка: ${wash}
+Простой:`;
+
+        // Заполняем текст
+        document.getElementById('report-text').textContent = reportText;
+
+        // Копируем в буфер обмена
+        navigator.clipboard.writeText(reportText).then(() => {
+          alert('Отчёт сформирован и скопирован в буфер обмена');
+        }).catch(err => {
+          console.error('Не удалось скопировать отчёт', err);
+          alert('Не удалось скопировать (возможно, браузер не поддерживает navigator.clipboard)');
+        });
+      }
+
+      function areAllTasksDone(pageId) {
+        return checklists[pageId].every(task => appState.doneTasks[task.id]);
+      }
+
+      function updatePageControls() {
+        // Проверка для кнопок «Далее» на страницах 1,5,6,3,2,4 (новый порядок)
+        const nextButtonsMap = {
+          'page-1': 'next-1',
+          'page-5': 'next-5',
+          'page-6': 'next-6',
+          'page-3': 'next-3',
+          'page-2': 'next-2',
+          'page-4': 'next-4'
+        };
+        Object.entries(nextButtonsMap).forEach(([pageId, btnId]) => {
+          const btn = document.getElementById(btnId);
+          if (btn) {
+            const allDone = areAllTasksDone(pageId);
+            btn.disabled = !allDone;
+            btn.classList.toggle('enabled', allDone);
+          }
+        });
+
+        // Кнопка «Готово» на странице 4 (финальная для prep)
+        const ready4Btn = document.getElementById('next-4');
+        if (ready4Btn) {
+          const allDone4 = areAllTasksDone('page-4');
+          ready4Btn.disabled = !allDone4;
+          ready4Btn.classList.toggle('enabled', allDone4);
+        }
+
+        // Кнопка «Готово» на странице выезда (7)
+        const finishBtn = document.getElementById('btn-finish-departure');
+        if (finishBtn) {
+          const allDone7 = areAllTasksDone('page-7');
+          finishBtn.disabled = !allDone7;
+          finishBtn.classList.toggle('enabled', allDone7);
+        }
+
+        // Кнопка «Готово» на конце смены (12)
+        const endReadyBtn = document.querySelector('#page-12 .btn-next');
+        if (endReadyBtn) {
+          const allDone12 = areAllTasksDone('page-12');
+          endReadyBtn.disabled = !allDone12;
+          endReadyBtn.classList.toggle('enabled', allDone12);
+        }
+      }
+
+      // Автоформатирование времени: ввод 4 цифр → формат чч:мм
+      function setupTimeInputs() {
+        const inputs = [
+          document.getElementById('report-time-ap'),
+          document.getElementById('report-time-rp')
+        ];
+
+        inputs.forEach(input => {
+          if (!input) return;
+
+          input.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, ''); // оставляем только цифры
+
+            // Если ввели 4 цифры — ставим двоеточие между 2 и 3 символом
+            if (value.length === 4) {
+              value = value.slice(0, 2) + ':' + value.slice(2);
+            }
+
+            // Ограничиваем длину: максимум 5 символов (чч:мм)
+            if (value.length > 5) {
+              value = value.slice(0, 5);
+            }
+
+            e.target.value = value;
+          });
+        });
+      }
+
+      // Инициализация при загрузке страницы
+      document.addEventListener('DOMContentLoaded', () => {
+        initTasks();
+        setupTimeInputs();
+      });
+    </script>
+  </body>
+</html>
